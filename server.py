@@ -4,13 +4,8 @@ from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
 
-stripe_keys = {
-    "secret_key": env.get("STRIPE_SECRET_KEY"),
-    "publishable_key": env.get("STRIPE_PUBLISHABLE_KEY")
-}
-
 #securely configures our secret key 
-stripe.api_key = stripe_keys["secret_key"]
+stripe.api_key = env.get("STRIPE_SECRET_KEY")
 
 @app.route("/")
 def index():
@@ -20,15 +15,15 @@ def index():
 #which it requests via this URL.
 @app.route("/config")
 def get_publishable_key():
-    stripe_config = {"publicKey": stripe_keys["publishable_key"]}
+    stripe_config = {"publicKey": env.get("STRIPE_PUBLISHABLE_KEY")}
     return jsonify(stripe_config)
 
 #When the client makes a purchase, the server needs to generate a Checkout Session ID,
 #and send the ID back to the client
 @app.route("/create-checkout-session")
 def create_checkout_session():
-    domain_url = "http://127.0.0.1:5000/"
-    stripe.api_key = stripe_keys["secret_key"] #secret key is sent automatically when we make a request to a new Checkout session
+    domain_url = env.get("DOMAIN_URL")
+    # stripe.api_key = stripe_env["secret_key"] #secret key is sent automatically when we make a request to a new Checkout session
 
     try:
         # Create new Checkout Session for the order
@@ -37,17 +32,11 @@ def create_checkout_session():
             cancel_url=domain_url + "cancelled",
             payment_method_types=["card"],
             mode="payment",
-            line_items=[
+            line_items=[ 
                 {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {
-                            "name": "T-shirt",
-                        },
-                        "unit_amount": 2000,  # Amount in cents
-                    },
-                    "quantity": 1,
-                }
+                    'price': 'price_1QKUUZGEAUaOFAvq840jfJuW', #this is the price id of the item being bought, which can be found on stripe dashboard
+                    'quantity': 1,
+                },
             ]
         )
         return jsonify({"sessionId": checkout_session["id"]})
@@ -61,6 +50,36 @@ def success():
 @app.route("/cancelled")
 def cancelled():
     return render_template("cancelled.html")
+
+#This endpoint allows our server to handle asynchronous events as they occur in our Stripe account
+@app.route("/webhook", methods=["POST"])
+def stripe_webhook():
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get("Stripe-Signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, env.get("STRIPE_ENDPOINT_SECRET")
+        )
+
+    except ValueError as e:
+        # Invalid payload
+        return "Invalid payload", 400
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return "Invalid signature", 400
+
+    # Handle different events
+    if event["type"] == "checkout.session.completed":
+        print("Payment was successful.")
+    elif event["type"] == "charge.dispute.created":
+        print("Customer is disupting the charge")
+    elif event["type"] == "charge.succeeded":
+        print("We sold something!")
+    else:
+        print(f"unhandled event type {event['type']}")
+
+    return "Success", 200
 
 if __name__ == "__main__":
     app.run()
