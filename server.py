@@ -89,6 +89,21 @@ def create_checkout_session():
         return jsonify(error=str(e)), 403
 
 
+@app.route("/update-snack-payment", methods=["POST"])
+def update_snack_payment():
+    data = request.json
+    print(data)
+    amount = 0
+    for product in products:
+        amount += int(data["product_amounts"][str(product["id"])]) * product["price_per_ounce"]
+
+    intent = stripe.PaymentIntent.update(
+        data["payment_intent_id"],
+        amount=amount
+    )
+    return jsonify(client_secret=intent.client_secret, amount=intent.amount)
+
+
 @app.route("/create-snack-payment", methods=["POST"])
 def create_snack_payment():
     data = request.json
@@ -102,7 +117,7 @@ def create_snack_payment():
         currency="usd",
         automatic_payment_methods={"enabled": True},
     )
-    return jsonify(client_secret=intent.client_secret, amount=intent.amount)
+    return jsonify(payment_intent_id=intent.id, client_secret=intent.client_secret, amount=intent.amount)
 
 
 @app.route("/success")

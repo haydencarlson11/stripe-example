@@ -1,4 +1,5 @@
 var g_elements;
+var g_payment_intent_id;
 
 function getProductAmounts() {
   let body = {
@@ -9,6 +10,23 @@ function getProductAmounts() {
     body["product_amounts"][el.attributes["product_id"].value] = el.value;
   }
   return body;
+}
+
+function updatePaymentForm(stripe) {
+  data = getProductAmounts();
+  data["payment_intent_id"] = g_payment_intent_id;
+  fetch("/create-snack-payment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(getProductAmounts()),
+  })
+    .then((result) => {
+      return result.json();
+    })
+    .then((data) => {
+      document.getElementById("payment-amount").innerText =
+        "$" + parseInt(data.amount / 100).toFixed(2);
+    });
 }
 
 function generatePaymentForm(stripe) {
@@ -22,8 +40,8 @@ function generatePaymentForm(stripe) {
       return result.json();
     })
     .then((data) => {
-
       console.log(data);
+      g_payment_intent_id = data.payment_intent_id;
 
       const options = {
         clientSecret: data.client_secret,
@@ -66,23 +84,21 @@ function init(data) {
 
   for (el of els) {
     el.addEventListener("input", (evt) => {
-      generatePaymentForm(stripe);
+      updatePaymentForm(stripe);
     });
   }
   generatePaymentForm(stripe);
 
-  const form = document.getElementById('payment-form');
+  const form = document.getElementById("payment-form");
 
-  form.addEventListener('submit', async (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    console.log(g_elements);
-
-    const {error} = await stripe.confirmPayment({
+    const { error } = await stripe.confirmPayment({
       //`Elements` instance that was used to create the Payment Element
       elements: g_elements,
       confirmParams: {
-        return_url: 'http://localhost:5000/complete',
+        return_url: "http://localhost:5000/complete",
       },
     });
 
@@ -90,7 +106,7 @@ function init(data) {
       // This point will only be reached if there is an immediate error when
       // confirming the payment. Show error to your customer (for example, payment
       // details incomplete)
-      const messageContainer = document.querySelector('#error-message');
+      const messageContainer = document.querySelector("#error-message");
       messageContainer.textContent = error.message;
     } else {
       // Your customer will be redirected to your `return_url`. For some payment
@@ -100,7 +116,7 @@ function init(data) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
   //Immediately get the Stripe publishable key
   fetch("/config")
     .then((result) => {
@@ -108,4 +124,3 @@ document.addEventListener("DOMContentLoaded", function() {
     })
     .then(init);
 });
-
