@@ -1,0 +1,30 @@
+{% macro snack_card(product) %}
+<div class="cell card">
+    <div class="card-image">
+      <figure class="image is-4by3">
+        <img
+          src="{{product.image}}"
+          alt="Placeholder image"
+        />
+      </figure>
+    </div>
+    <div class="card-content">
+      <div class="media">
+        <div class="media-content">
+          <p class="title is-2">{{product.title}}</p>
+        <p class="subtitle is-4">${{"%.2f"|format((product.price_per_ounce|int)/100|float)}} <span class="is-size-5">per ounce</span></p>
+        </div>
+        <div class="media-right">
+        <div class="is-flex">
+          <span>Qty: </span>
+          <input class="snack-product-qty input inline" value="0" type="number" min="0" max="99" product_id="{{product.id}}"/>
+        </div>
+        </div>
+      </div>
+
+      <div class="content">
+      {{product.description}}
+      </div>
+  </div>
+</div>
+{% endmacro %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {% include "navbar.html" %}
+  <div class="box">
+    <h1 class="title">Get a 30-day snack subscription!</h1>
+    <h2 class="subtitle">Only $20.00!</h2>
+
+    <button id="subscribeBtn" class="button is-primary">Subscribe</button>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+ <script src="/static/js/subscribe.js"></script>
+{% endblock %}
