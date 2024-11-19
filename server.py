@@ -33,13 +33,19 @@ products = [
 
 
 @app.route("/products")
-def get_products():
-    return jsonify(products)
+def get_products(jsonify=True):
+    products = stripe.Product.list()
+    for product in products.data:
+        product["price"] = stripe.Price.retrieve(product["default_price"])
+    if jsonify:
+        return jsonify(products)
+    else:
+        return products
 
 
 @app.route("/")
 def index():
-    return render_template("index.html", products=products)
+    return render_template("index.html", products=get_products(False))
 
 
 @app.route("/subscriptions")
@@ -48,8 +54,6 @@ def subscriptions():
 
 # The client needs a public key to set up a secure connection,
 # which it requests via this URL.
-
-
 
 
 @app.route("/config")
@@ -92,12 +96,13 @@ def create_checkout_session():
 @app.route("/update-snack-payment", methods=["POST"])
 def update_snack_payment():
     data = request.json
-    print(data)
     amount = 0
+    products = get_products(False)
     for product in products:
-        amount += int(data["product_amounts"][str(product["id"])]) * product["price_per_ounce"]
+        amount += int(data["product_amounts"][str(product["id"])]
+                      ) * product["price"]["unit_amount"]
 
-    intent = stripe.PaymentIntent.update(
+    intent = stripe.PaymentIntent.modify(
         data["payment_intent_id"],
         amount=amount
     )
@@ -107,11 +112,14 @@ def update_snack_payment():
 @app.route("/create-snack-payment", methods=["POST"])
 def create_snack_payment():
     data = request.json
-    print(data)
     amount = 0
+    products = get_products(False)
     for product in products:
-        amount += int(data["product_amounts"][str(product["id"])]) * product["price_per_ounce"]
+        amount += int(data["product_amounts"][str(product["id"])]
+                      ) * product["price"]["unit_amount"]
 
+    if amount == 0:
+        amount = 50
     intent = stripe.PaymentIntent.create(
         amount=amount,
         currency="usd",
@@ -130,6 +138,7 @@ def cancelled():
     return render_template("cancelled.html")
 
 # This endpoint allows our server to handle asynchronous events as they occur in our Stripe account
+
 
 @app.route("/complete")
 def complete():

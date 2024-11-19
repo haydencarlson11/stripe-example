@@ -2,17 +2,24 @@
 <div class="cell card">
     <div class="card-image">
       <figure class="image is-4by3">
+      {% if product.images|length > 0 %}
         <img
-          src="{{product.image}}"
+        src="{{product.images[0]}}"
+          alt="Product image"
+        />
+      {% else %}
+        <img
+        src="/static/images/1280x960.png"
           alt="Placeholder image"
         />
+      {% endif %}
       </figure>
     </div>
     <div class="card-content">
       <div class="media">
         <div class="media-content">
-          <p class="title is-2">{{product.title}}</p>
-        <p class="subtitle is-4">${{"%.2f"|format((product.price_per_ounce|int)/100|float)}} <span class="is-size-5">per ounce</span></p>
+          <p class="title is-2">{{product.name}}</p>
+        <p class="subtitle is-4">${{"%.2f"|format((product.price.unit_amount|int)/100|float)}} <span class="is-size-5">per {{product.unit_label if product.unit_label != None else "unit"}}</span></p>
         </div>
         <div class="media-right">
         <div class="is-flex">
