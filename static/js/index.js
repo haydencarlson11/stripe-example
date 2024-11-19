@@ -15,10 +15,10 @@ function getProductAmounts() {
 function updatePaymentForm(stripe) {
   data = getProductAmounts();
   data["payment_intent_id"] = g_payment_intent_id;
-  fetch("/create-snack-payment", {
+  fetch("/update-snack-payment", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(getProductAmounts()),
+    body: JSON.stringify(data,
   })
     .then((result) => {
       return result.json();
