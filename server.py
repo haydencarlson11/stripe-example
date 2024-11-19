@@ -86,7 +86,8 @@ def create_checkout_session():
                     'price': 'price_1QKUUZGEAUaOFAvq840jfJuW',
                     'quantity': 1,
                 },
-            ]
+            ],
+            allow_promotion_codes = True
         )
         return jsonify({"sessionId": checkout_session["id"]})
     except Exception as e:
