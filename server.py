@@ -84,6 +84,11 @@ def create_checkout_session():
                 {
                     # this is the price id of the item being bought, which can be found on stripe dashboard
                     'price': 'price_1QKUUZGEAUaOFAvq840jfJuW',
+                    'adjustable_quantity': {"enabled": True, "minimum": 1, "maximum": 10},
+                    'quantity': 1,
+                },
+                {
+                    'price': 'price_1QNJXRGEAUaOFAvqUDSMQpNr',
                     'quantity': 1,
                 },
             ],
