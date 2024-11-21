@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(init);
 });
 
-//initialize stripe.js, navigate to hosted payment when hosted-form button is clicked
+//THis is for the hosted form. initialize stripe.js, navigate to hosted payment when hosted-form button is clicked
 document.addEventListener("DOMContentLoaded", function() {
   //Immediately get the Stripe publishable key
   fetch("/config")
