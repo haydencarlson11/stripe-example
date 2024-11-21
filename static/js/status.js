@@ -1,6 +1,19 @@
-function init(data) {
-  // Initialize Stripe.js using your publishable key
-  const stripe = Stripe(data.publicKey);
+document.addEventListener("DOMContentLoaded", function() {
+  //Immediately get the Stripe publishable key
+  fetch("/config")
+    .then((result) => {
+      return result.json();
+    })
+    .then((data) => {
+
+      // Initialize Stripe.js using your publishable key
+      const stripe = Stripe(data.publicKey);
+
+      init(stripe)
+    });
+});
+
+function init(stripe) {
 
   // Retrieve the "payment_intent_client_secret" query parameter appended to
   // your return_url by Stripe.js
@@ -43,11 +56,3 @@ function init(data) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-  //Immediately get the Stripe publishable key
-  fetch("/config")
-    .then((result) => {
-      return result.json();
-    })
-    .then(init);
-});

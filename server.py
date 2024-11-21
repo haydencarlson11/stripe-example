@@ -9,6 +9,8 @@ stripe.api_key = env.get("STRIPE_SECRET_KEY")
 
 # The client needs a public key to set up a secure connection for both forms,
 # which it requests via this URL.
+
+
 @app.route("/config")
 def get_publishable_key():
     stripe_config = {"publicKey": env.get("STRIPE_PUBLISHABLE_KEY")}
@@ -17,6 +19,8 @@ def get_publishable_key():
 # When the client makes a purchase, the server needs to generate a Checkout
 # Session ID,
 # and send the ID back to the client
+
+
 @app.route("/create-checkout-session")
 def create_checkout_session():
     domain_url = env.get("DOMAIN_URL")
@@ -42,15 +46,17 @@ def create_checkout_session():
                     'quantity': 1,
                 },
             ],
-            allow_promotion_codes = True
+            allow_promotion_codes=True
         )
         return jsonify({"sessionId": checkout_session["id"]})
     except Exception as e:
         return jsonify(error=str(e)), 403
 
+
 @app.route("/success")
 def success():
     return render_template("success.html")
+
 
 @app.route("/cancelled")
 def cancelled():
@@ -65,16 +71,19 @@ def cancelled():
 def index():
     return render_template("index.html", products=get_products(False))
 
-#gets the products from stripe dashboard for the embedded form
+
+# gets the products from stripe dashboard for the embedded form
 def get_products(jsonify=True):
     products = stripe.Product.list()
+    products.data = list(filter(lambda p: p["active"], products.data))
     for product in products.data:
         product["price"] = stripe.Price.retrieve(product["default_price"])
     if jsonify:
         return jsonify(products)
     else:
         return products
-    
+
+
 # Creates a stripe payment intent with the specified product quantities
 @app.route("/create-snack-payment", methods=["POST"])
 def create_snack_payment():
@@ -82,17 +91,22 @@ def create_snack_payment():
     amount = 0
     products = get_products(False)
     for product in products:
-        amount += int(data["product_amounts"][str(product["id"])]
-                      ) * product["price"]["unit_amount"]
+        quantity = int(data["product_amounts"][str(product["id"])])
+        price = product["price"]["unit_amount"]
+        amount += quantity * price
 
     if amount == 0:
-        amount = 50
+        amount = 50  # workaround, payment intent cannot be $0
     intent = stripe.PaymentIntent.create(
         amount=amount,
         currency="usd",
         automatic_payment_methods={"enabled": True},
     )
-    return jsonify(payment_intent_id=intent.id, client_secret=intent.client_secret, amount=intent.amount)
+    return jsonify(
+        payment_intent_id=intent.id,
+        client_secret=intent.client_secret,
+        amount=intent.amount)
+
 
 # updates the stripe payment intent with new product quantities
 @app.route("/update-snack-payment", methods=["POST"])
@@ -101,8 +115,9 @@ def update_snack_payment():
     amount = 0
     products = get_products(False)
     for product in products:
-        amount += int(data["product_amounts"][str(product["id"])]
-                      ) * product["price"]["unit_amount"]
+        quantity = int(data["product_amounts"][str(product["id"])])
+        price = product["price"]["unit_amount"]
+        amount += quantity * price
 
     intent = stripe.PaymentIntent.modify(
         data["payment_intent_id"],
@@ -110,15 +125,17 @@ def update_snack_payment():
     )
     return jsonify(client_secret=intent.client_secret, amount=intent.amount)
 
-# This endpoint allows our server to handle asynchronous events as they occur in our Stripe account
+
+# route to handle purchase success/failure
 @app.route("/complete")
 def complete():
     return render_template("complete.html")
 
 
 
-#Webhook is passed events from the stripe dashboard. This is useful for debugging and
-#automating business logic on the server in response to events
+
+# Webhook is passed events from the stripe dashboard. This is useful for debugging and
+# automating business logic on the server in response to events
 @app.route("/webhook", methods=["POST"])
 def stripe_webhook():
     payload = request.get_data(as_text=True)

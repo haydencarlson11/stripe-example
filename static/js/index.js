@@ -39,6 +39,7 @@ function stripeHostedInit(stripe) {
 var g_elements;
 var g_payment_intent_id;
 
+// retrieves product quantities from webpage
 function getProductAmounts() {
   let body = {
     product_amounts: {},
@@ -50,8 +51,8 @@ function getProductAmounts() {
   return body;
 }
 
+// creates payment for selected products
 function generatePaymentForm(stripe) {
-  // Get
   fetch("/create-snack-payment", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -61,7 +62,7 @@ function generatePaymentForm(stripe) {
       return result.json();
     })
     .then((data) => {
-      console.log(data);
+
       g_payment_intent_id = data.payment_intent_id;
 
       const options = {
@@ -96,6 +97,7 @@ function generatePaymentForm(stripe) {
     });
 }
 
+// updates payment to reflect selected products
 function updatePaymentForm(stripe) {
   data = getProductAmounts();
   data["payment_intent_id"] = g_payment_intent_id;
@@ -113,19 +115,21 @@ function updatePaymentForm(stripe) {
     });
 }
 
+// initializes event handlers for embedded form
 function embededInit(stripe) {
-  // Event handler
-  let els = document.querySelectorAll(".snack-product-qty");
 
+  // set up handlers for quantity changes
+  let els = document.querySelectorAll(".snack-product-qty");
   for (el of els) {
     el.addEventListener("input", (evt) => {
       updatePaymentForm(stripe);
     });
   }
+
   generatePaymentForm(stripe);
 
+  // set up purchase handler
   const form = document.getElementById("payment-form");
-
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 

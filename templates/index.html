@@ -5,15 +5,18 @@
   <section class="section">
     <div class="fixed-grid has-4-cols">
       <div class="grid">
-    <div class="cell is-col-span-3 fixed-grid has-3-cols">
-      <div class="grid">
-        {% for product in products.data %}{{ snack_card(product) }}{% endfor %}
+
+        <!-- product cards -->
+        <div class="cell is-col-span-3 fixed-grid has-3-cols">
+          <div class="grid">
+            {% for product in products.data %}{{ snack_card(product) }}{% endfor %}
+          </div>
+        </div>
+
+        <!-- payment-form -->
+        <div class="cell box has-background-grey-dark" id="payment-form-container">{% include "payment-form.html" %}</div>
+
       </div>
-    </div>
-    <div class="cell box has-background-grey-dark" id="payment-form-container">
-
-      {% include "payment-form.html" %}
-
     </div>
   </section>
 {% endblock %}
