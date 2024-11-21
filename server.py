@@ -47,11 +47,6 @@ def get_products(jsonify=True):
 def index():
     return render_template("index.html", products=get_products(False))
 
-
-# @app.route("/tshirt")
-# def subscriptions():
-#     return render_template("tshirt.html")
-
 # The client needs a public key to set up a secure connection,
 # which it requests via this URL.
 
