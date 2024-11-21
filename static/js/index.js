@@ -1,3 +1,41 @@
+document.addEventListener("DOMContentLoaded", function () {
+  //Immediately get the Stripe publishable key
+  fetch("/config")
+    .then((result) => {
+      return result.json();
+    })
+    .then(init);
+});
+
+function init(data) {
+  //Initialize Stripe.js. Script containing Stripe class is included in base.html
+  const stripe = Stripe(data.publicKey);
+
+  stripeHostedInit(stripe); // sets up stripe hosted form
+  embededInit(stripe); // sets up embeded form
+
+}
+
+
+function stripeHostedInit(stripe) {
+  // Event handler
+  document.querySelector("#hosted-form").addEventListener("click", () => {
+    // Get Checkout Session ID
+    fetch("/create-checkout-session")
+      .then((result) => { return result.json(); })
+      .then((data) => {
+        console.log(data);
+        // Redirect to Stripe Checkout
+        return stripe.redirectToCheckout({ sessionId: data.sessionId })
+      })
+      .then((res) => {
+        console.log(res);
+      });
+  });
+}
+
+
+
 var g_elements;
 var g_payment_intent_id;
 
@@ -10,23 +48,6 @@ function getProductAmounts() {
     body["product_amounts"][el.attributes["product_id"].value] = el.value;
   }
   return body;
-}
-
-function updatePaymentForm(stripe) {
-  data = getProductAmounts();
-  data["payment_intent_id"] = g_payment_intent_id;
-  fetch("/update-snack-payment", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  })
-    .then((result) => {
-      return result.json();
-    })
-    .then((data) => {
-      document.getElementById("payment-amount").innerText =
-        "$" + parseInt(data.amount / 100).toFixed(2);
-    });
 }
 
 function generatePaymentForm(stripe) {
@@ -75,10 +96,24 @@ function generatePaymentForm(stripe) {
     });
 }
 
-function init(data) {
-  //Initialize Stripe.js. Script containing Stripe class is included in base.html
-  const stripe = Stripe(data.publicKey);
+function updatePaymentForm(stripe) {
+  data = getProductAmounts();
+  data["payment_intent_id"] = g_payment_intent_id;
+  fetch("/update-snack-payment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+    .then((result) => {
+      return result.json();
+    })
+    .then((data) => {
+      document.getElementById("payment-amount").innerText =
+        "$" + parseInt(data.amount / 100).toFixed(2);
+    });
+}
 
+function embededInit(stripe) {
   // Event handler
   let els = document.querySelectorAll(".snack-product-qty");
 
@@ -115,40 +150,3 @@ function init(data) {
     }
   });
 }
-
-document.addEventListener("DOMContentLoaded", function () {
-  //Immediately get the Stripe publishable key
-  fetch("/config")
-    .then((result) => {
-      return result.json();
-    })
-    .then(init);
-});
-
-//THis is for the hosted form. initialize stripe.js, navigate to hosted payment when hosted-form button is clicked
-document.addEventListener("DOMContentLoaded", function() {
-  //Immediately get the Stripe publishable key
-  fetch("/config")
-    .then((result) => {
-      return result.json();
-    })
-    .then((data) => {
-      //Initialize Stripe.js. Script containing Stripe class is included in base.html
-      const stripe = Stripe(data.publicKey);
-
-      // Event handler
-      document.querySelector("#hosted-form").addEventListener("click", () => {
-        // Get Checkout Session ID
-        fetch("/create-checkout-session")
-        .then((result) => { return result.json(); })
-        .then((data) => {
-          console.log(data);
-          // Redirect to Stripe Checkout
-          return stripe.redirectToCheckout({sessionId: data.sessionId})
-        })
-        .then((res) => {
-          console.log(res);
-        });
-      });
-    });
-});
