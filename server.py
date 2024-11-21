@@ -7,50 +7,8 @@ app = Flask(__name__)
 # securely configures our secret key
 stripe.api_key = env.get("STRIPE_SECRET_KEY")
 
-products = [
-    {
-        "id": 0,
-        "title": "Popcorn",
-        "image": "/static/images/popcorn.jpg",
-        "description": "Salty, savory, yum!",
-        "price_per_ounce": 100,
-    },
-    {
-        "id": 1,
-        "title": "Assorted Gummies",
-        "image": "/static/images/assorted_gummies.jpg",
-        "description": "So sweet!",
-        "price_per_ounce": 400,
-    },
-    {
-        "id": 2,
-        "title": "Mixed Nuts",
-        "image": "/static/images/mixed_nuts.jpg",
-        "description": "Salty, savory, yum!",
-        "price_per_ounce": 300,
-    }
-]
-
-
-@app.route("/products")
-def get_products(jsonify=True):
-    products = stripe.Product.list()
-    for product in products.data:
-        product["price"] = stripe.Price.retrieve(product["default_price"])
-    if jsonify:
-        return jsonify(products)
-    else:
-        return products
-
-
-@app.route("/")
-def index():
-    return render_template("index.html", products=get_products(False))
-
-# The client needs a public key to set up a secure connection,
+# The client needs a public key to set up a secure connection for both forms,
 # which it requests via this URL.
-
-
 @app.route("/config")
 def get_publishable_key():
     stripe_config = {"publicKey": env.get("STRIPE_PUBLISHABLE_KEY")}
@@ -59,14 +17,11 @@ def get_publishable_key():
 # When the client makes a purchase, the server needs to generate a Checkout
 # Session ID,
 # and send the ID back to the client
-
-
 @app.route("/create-checkout-session")
 def create_checkout_session():
     domain_url = env.get("DOMAIN_URL")
-    # stripe.api_key = stripe_env["secret_key"] #secret key is sent
+    # #secret key is sent
     # automatically when we make a request to a new Checkout session
-
     try:
         # Create new Checkout Session for the order
         checkout_session = stripe.checkout.Session.create(
@@ -93,23 +48,34 @@ def create_checkout_session():
     except Exception as e:
         return jsonify(error=str(e)), 403
 
+@app.route("/success")
+def success():
+    return render_template("success.html")
 
-@app.route("/update-snack-payment", methods=["POST"])
-def update_snack_payment():
-    data = request.json
-    amount = 0
-    products = get_products(False)
-    for product in products:
-        amount += int(data["product_amounts"][str(product["id"])]
-                      ) * product["price"]["unit_amount"]
-
-    intent = stripe.PaymentIntent.modify(
-        data["payment_intent_id"],
-        amount=amount
-    )
-    return jsonify(client_secret=intent.client_secret, amount=intent.amount)
+@app.route("/cancelled")
+def cancelled():
+    return render_template("cancelled.html")
 
 
+
+
+
+
+@app.route("/")
+def index():
+    return render_template("index.html", products=get_products(False))
+
+#gets the products from stripe dashboard for the embedded form
+def get_products(jsonify=True):
+    products = stripe.Product.list()
+    for product in products.data:
+        product["price"] = stripe.Price.retrieve(product["default_price"])
+    if jsonify:
+        return jsonify(products)
+    else:
+        return products
+    
+# Creates a stripe payment intent with the specified product quantities
 @app.route("/create-snack-payment", methods=["POST"])
 def create_snack_payment():
     data = request.json
@@ -128,24 +94,31 @@ def create_snack_payment():
     )
     return jsonify(payment_intent_id=intent.id, client_secret=intent.client_secret, amount=intent.amount)
 
+# updates the stripe payment intent with new product quantities
+@app.route("/update-snack-payment", methods=["POST"])
+def update_snack_payment():
+    data = request.json
+    amount = 0
+    products = get_products(False)
+    for product in products:
+        amount += int(data["product_amounts"][str(product["id"])]
+                      ) * product["price"]["unit_amount"]
 
-@app.route("/success")
-def success():
-    return render_template("success.html")
-
-
-@app.route("/cancelled")
-def cancelled():
-    return render_template("cancelled.html")
+    intent = stripe.PaymentIntent.modify(
+        data["payment_intent_id"],
+        amount=amount
+    )
+    return jsonify(client_secret=intent.client_secret, amount=intent.amount)
 
 # This endpoint allows our server to handle asynchronous events as they occur in our Stripe account
-
-
 @app.route("/complete")
 def complete():
     return render_template("complete.html")
 
 
+
+#Webhook is passed events from the stripe dashboard. This is useful for debugging and
+#automating business logic on the server in response to events
 @app.route("/webhook", methods=["POST"])
 def stripe_webhook():
     payload = request.get_data(as_text=True)
