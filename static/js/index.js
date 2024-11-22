@@ -13,26 +13,32 @@ function init(data) {
 
   stripeHostedInit(stripe); // sets up stripe hosted form
   embededInit(stripe); // sets up embeded form
-
 }
-
 
 function stripeHostedInit(stripe) {
   // Event handler
   document.querySelector("#hosted-form").addEventListener("click", () => {
     // Get Checkout Session ID
     fetch("/create-checkout-session")
-      .then((result) => { return result.json(); })
+      .then((result) => {
+        return result.json();
+      })
       .then((data) => {
         console.log(data);
         // Redirect to Stripe Checkout
-        return stripe.redirectToCheckout({ sessionId: data.sessionId })
+        return stripe.redirectToCheckout({ sessionId: data.sessionId });
       })
       .then((res) => {
         console.log(res);
       });
   });
 }
+
+
+
+
+
+
 
 
 
@@ -51,6 +57,12 @@ function getProductAmounts() {
   return body;
 }
 
+// updates page to display purchase amount
+function displayPurchaseAmount(amount) {
+  document.getElementById("payment-amount").innerText =
+    "$" + parseInt(amount / 100).toFixed(2);
+}
+
 // creates payment for selected products
 function generatePaymentForm(stripe) {
   fetch("/create-snack-payment", {
@@ -58,15 +70,14 @@ function generatePaymentForm(stripe) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(getProductAmounts()),
   })
-    .then((result) => {
-      return result.json();
-    })
+    .then((result) => result.json())
     .then((data) => {
-
       g_payment_intent_id = data.payment_intent_id;
+      clientSecret = data.client_secret;
+      amount = data.amount;
 
       const options = {
-        clientSecret: data.client_secret,
+        clientSecret: clientSecret,
         // Fully customizable with appearance API.
         appearance: {
           theme: "night",
@@ -92,8 +103,7 @@ function generatePaymentForm(stripe) {
         }
       });
 
-      document.getElementById("payment-amount").innerText =
-        "$" + parseInt(data.amount / 100).toFixed(2);
+      displayPurchaseAmount(amount);
     });
 }
 
@@ -106,18 +116,12 @@ function updatePaymentForm(stripe) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   })
-    .then((result) => {
-      return result.json();
-    })
-    .then((data) => {
-      document.getElementById("payment-amount").innerText =
-        "$" + parseInt(data.amount / 100).toFixed(2);
-    });
+    .then((result) => result.json())
+    .then((data) => displayPurchaseAmount(data.amount));
 }
 
 // initializes event handlers for embedded form
 function embededInit(stripe) {
-
   // set up handlers for quantity changes
   let els = document.querySelectorAll(".snack-product-qty");
   for (el of els) {
