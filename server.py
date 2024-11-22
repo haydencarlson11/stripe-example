@@ -85,17 +85,24 @@ def get_products(jsonify=True):
         return products
 
 
-# Creates a stripe payment intent with the specified product quantities
-@app.route("/create-snack-payment", methods=["POST"])
-def create_snack_payment():
-    data = request.json
+# calculates the total price of given product_amounts
+# - product_amounts is a dictionary with key: product id, value: amount
+def get_total_price(product_amounts):
     amount = 0
     products = get_products(False)
     for product in products:
         product_id = str(product["id"])
-        quantity = int(data["product_amounts"][product_id])
+        quantity = int(product_amounts[product_id])
         price = product["price"]["unit_amount"]
         amount += quantity * price
+    return amount
+
+
+# Creates a stripe payment intent with the specified product quantities
+@app.route("/create-snack-payment", methods=["POST"])
+def create_snack_payment():
+    data = request.json
+    amount = get_total_price(data["product_amounts"])
 
     if amount == 0:
         amount = 50  # workaround, payment intent cannot be $0
@@ -114,13 +121,7 @@ def create_snack_payment():
 @app.route("/update-snack-payment", methods=["POST"])
 def update_snack_payment():
     data = request.json
-    amount = 0
-    products = get_products(False)
-    for product in products:
-        product_id = str(product["id"])
-        quantity = int(data["product_amounts"][product_id])
-        price = product["price"]["unit_amount"]
-        amount += quantity * price
+    amount = get_total_price(data["product_amounts"])
 
     intent = stripe.PaymentIntent.modify(
         data["payment_intent_id"],
