@@ -77,7 +77,8 @@ def get_products(jsonify=True):
     products = stripe.Product.list()
     products.data = list(filter(lambda p: p["active"], products.data))
     for product in products.data:
-        product["price"] = stripe.Price.retrieve(product["default_price"])
+        price_id = product["default_price"]
+        product["price"] = stripe.Price.retrieve(price_id)
     if jsonify:
         return jsonify(products)
     else:
@@ -91,7 +92,8 @@ def create_snack_payment():
     amount = 0
     products = get_products(False)
     for product in products:
-        quantity = int(data["product_amounts"][str(product["id"])])
+        product_id = str(product["id"])
+        quantity = int(data["product_amounts"][product_id])
         price = product["price"]["unit_amount"]
         amount += quantity * price
 
@@ -115,7 +117,8 @@ def update_snack_payment():
     amount = 0
     products = get_products(False)
     for product in products:
-        quantity = int(data["product_amounts"][str(product["id"])])
+        product_id = str(product["id"])
+        quantity = int(data["product_amounts"][product_id])
         price = product["price"]["unit_amount"]
         amount += quantity * price
 
